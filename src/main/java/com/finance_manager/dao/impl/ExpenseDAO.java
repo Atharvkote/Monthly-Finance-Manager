@@ -1,7 +1,6 @@
 package com.finance_manager.dao.impl;
 
 import com.finance_manager.dao.DBConnection;
-import com.finance_manager.interfaces.ExpenseDAO;
 import com.finance_manager.exceptions.DatabaseOperationException;
 import com.finance_manager.model.Expense;
 
@@ -10,7 +9,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ExpenseDAOImpl implements ExpenseDAO {
+public class ExpenseDAO implements com.finance_manager.interfaces.ExpenseDAO {
 
     private static final String INSERT_SQL = "INSERT INTO expense (amount, category, description, date) VALUES (?, ?, ?, ?)";
     private static final String FETCH_BY_MONTH_SQL = "SELECT id, amount, category, description, date FROM expense WHERE YEAR(date) = ? AND MONTH(date) = ?";

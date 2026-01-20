@@ -10,5 +10,7 @@ public interface ExpenseDAO {
     void insertExpense(Expense expense) throws DatabaseOperationException;
     List<Expense> fetchByMonth(int year, int month) throws DatabaseOperationException;
     List<Expense> fetchByDateRange(LocalDate from, LocalDate to) throws DatabaseOperationException;
+    void updateExpense(Expense expense) throws DatabaseOperationException;
+    void deleteExpense(int id) throws DatabaseOperationException;
 }
 

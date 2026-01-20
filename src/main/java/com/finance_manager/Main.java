@@ -1,6 +1,5 @@
 package com.finance_manager;
 
-import com.finance_manager.dao.SchemaInitializer;
 import com.finance_manager.exceptions.DatabaseOperationException;
 import com.finance_manager.exceptions.InvalidAmountException;
 import com.finance_manager.model.Expense;
@@ -13,19 +12,12 @@ import com.finance_manager.service.ReportService;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
-        // Attempt to initialize schema (creates DB and tables if missing) — requires privileges
-        try {
-            SchemaInitializer.ensureSchema();
-            System.out.println("Database schema checked/initialized.");
-        } catch (DatabaseOperationException e) {
-            System.out.println("Warning: could not initialize database schema: " + e.getMessage());
-            if (e.getCause() != null) System.out.println("Cause: " + e.getCause().getMessage());
-            System.out.println("Proceeding; if DB/tables do not exist, insert operations may fail.");
-        }
 
         IncomeService incomeService = new IncomeService();
         ExpenseService expenseService = new ExpenseService();
@@ -56,6 +48,18 @@ public class Main {
                     handleCustomReport(reportService, scanner, formatter);
                     break;
                 case "6":
+                handleUpdateIncome(scanner, incomeService, formatter);
+                break;
+            case "7":
+                handleDeleteIncome(scanner, incomeService);
+                break;
+            case "8":
+                handleUpdateExpense(scanner, expenseService, formatter);
+                break;
+            case "9":
+                handleDeleteExpense(scanner, expenseService);
+                break;
+            case "0":
                     running = false;
                     System.out.println("Exiting. Goodbye!");
                     break;
@@ -73,9 +77,13 @@ public class Main {
         System.out.println("1) Add Income");
         System.out.println("2) Add Expense");
         System.out.println("3) View Monthly Income vs Expense (quick)");
-        System.out.println("4) Generate Monthly Report");
-        System.out.println("5) Generate Custom Date Range Report");
-        System.out.println("6) Exit");
+        System.out.println("4) Generate Monthly Report (detailed history)");
+        System.out.println("5) Generate Custom Date Range Report (detailed history)");
+        System.out.println("6) Update Income");
+        System.out.println("7) Delete Income");
+        System.out.println("8) Update Expense");
+        System.out.println("9) Delete Expense");
+        System.out.println("0) Exit");
     }
 
     private static void handleAddIncome(Scanner scanner, IncomeService incomeService, DateTimeFormatter formatter) {
@@ -166,7 +174,9 @@ public class Main {
             int month = Integer.parseInt(scanner.nextLine().trim());
 
             MonthlyReport report = reportService.generateMonthlyReport(year, month);
-            printReport(report, String.format("Monthly report for %d-%02d", year, month));
+            System.out.println("--- Monthly report for " + year + "-" + String.format("%02d", month) + " ---");
+            printDetailedHistory(reportService, year, month);
+            printReport(report, "Summary");
         } catch (NumberFormatException e) {
             System.out.println("Invalid number input.");
         } catch (DatabaseOperationException e) {
@@ -185,7 +195,9 @@ public class Main {
             LocalDate to = LocalDate.parse(scanner.nextLine().trim(), formatter);
 
             MonthlyReport report = reportService.generateCustomDateReport(from, to);
-            printReport(report, String.format("Custom date report %s to %s", from, to));
+            System.out.println("--- Custom date report " + from + " to " + to + " ---");
+            printDetailedHistory(reportService, from, to);
+            printReport(report, "Summary");
         } catch (DateTimeParseException e) {
             System.out.println("Invalid date format. Use yyyy-MM-dd.");
         } catch (DatabaseOperationException e) {
@@ -201,5 +213,136 @@ public class Main {
         System.out.printf("Total Income : %.2f\n", report.getTotalIncome());
         System.out.printf("Total Expense: %.2f\n", report.getTotalExpense());
         System.out.printf("Savings      : %.2f\n", report.getSavings());
+    }
+
+    private static void printDetailedHistory(ReportService reportService, int year, int month) throws DatabaseOperationException {
+        List<Income> incomes = reportService.getIncomeService().getIncomeByMonth(year, month);
+        List<Expense> expenses = reportService.getExpenseService().getExpenseByMonth(year, month);
+        printTransactionHistory(incomes, expenses);
+    }
+
+    private static void printDetailedHistory(ReportService reportService, LocalDate from, LocalDate to) throws DatabaseOperationException {
+        List<Income> incomes = reportService.getIncomeService().getIncomeByDateRange(from, to);
+        List<Expense> expenses = reportService.getExpenseService().getExpenseByDateRange(from, to);
+        printTransactionHistory(incomes, expenses);
+    }
+
+    private static void printTransactionHistory(List<Income> incomes, List<Expense> expenses) {
+        System.out.println("--- Detailed income / expense history ---");
+        record Movement(LocalDate date, String type, String description, double change, double balance) {}
+
+        // Build a single list of movements
+        List<Movement> movements = new java.util.ArrayList<>();
+        for (Income i : incomes) {
+            movements.add(new Movement(i.getDate(), "INCOME", i.getSource() + " - " + i.getDescription(), i.getAmount(), 0));
+        }
+        for (Expense e : expenses) {
+            movements.add(new Movement(e.getDate(), "EXPENSE", e.getCategory() + " - " + e.getDescription(), -e.getAmount(), 0));
+        }
+
+        // Sort by date
+        movements.sort(Comparator.comparing(Movement::date));
+
+        double balance = 0;
+        System.out.printf("%-12s %-8s %-30s %10s %12s%n", "Date", "Type", "Description", "Change", "Balance");
+        for (int idx = 0; idx < movements.size(); idx++) {
+            Movement m = movements.get(idx);
+            balance += m.change();
+            System.out.printf("%-12s %-8s %-30s %10.2f %12.2f%n",
+                    m.date(), m.type(), m.description(), m.change(), balance);
+        }
+        if (movements.isEmpty()) {
+            System.out.println("No transactions in this period.");
+        }
+    }
+
+    private static void handleUpdateIncome(Scanner scanner, IncomeService incomeService, DateTimeFormatter formatter) {
+        try {
+            System.out.print("Enter income ID to update: ");
+            int id = Integer.parseInt(scanner.nextLine().trim());
+
+            System.out.print("New amount: ");
+            double amount = Double.parseDouble(scanner.nextLine().trim());
+            System.out.print("New source: ");
+            String source = scanner.nextLine().trim();
+            System.out.print("New description: ");
+            String desc = scanner.nextLine().trim();
+            System.out.print("New date (yyyy-MM-dd): ");
+            LocalDate date = LocalDate.parse(scanner.nextLine().trim(), formatter);
+
+            Income income = new Income(id, amount, source, desc, date);
+            incomeService.updateIncome(income);
+            System.out.println("Income updated successfully.");
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid number input.");
+        } catch (DateTimeParseException e) {
+            System.out.println("Invalid date format. Use yyyy-MM-dd.");
+        } catch (InvalidAmountException | DatabaseOperationException e) {
+            System.out.println("Error: " + e.getMessage());
+            if (e.getCause() != null) {
+                System.out.println("Cause: " + e.getCause().getMessage());
+            }
+        }
+    }
+
+    private static void handleDeleteIncome(Scanner scanner, IncomeService incomeService) {
+        try {
+            System.out.print("Enter income ID to delete: ");
+            int id = Integer.parseInt(scanner.nextLine().trim());
+            incomeService.deleteIncome(id);
+            System.out.println("Income deleted successfully.");
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid number input.");
+        } catch (DatabaseOperationException e) {
+            System.out.println("Error: " + e.getMessage());
+            if (e.getCause() != null) {
+                System.out.println("Cause: " + e.getCause().getMessage());
+            }
+        }
+    }
+
+    private static void handleUpdateExpense(Scanner scanner, ExpenseService expenseService, DateTimeFormatter formatter) {
+        try {
+            System.out.print("Enter expense ID to update: ");
+            int id = Integer.parseInt(scanner.nextLine().trim());
+
+            System.out.print("New amount: ");
+            double amount = Double.parseDouble(scanner.nextLine().trim());
+            System.out.print("New category: ");
+            String category = scanner.nextLine().trim();
+            System.out.print("New description: ");
+            String desc = scanner.nextLine().trim();
+            System.out.print("New date (yyyy-MM-dd): ");
+            LocalDate date = LocalDate.parse(scanner.nextLine().trim(), formatter);
+
+            Expense expense = new Expense(id, amount, category, desc, date);
+            expenseService.updateExpense(expense);
+            System.out.println("Expense updated successfully.");
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid number input.");
+        } catch (DateTimeParseException e) {
+            System.out.println("Invalid date format. Use yyyy-MM-dd.");
+        } catch (InvalidAmountException | DatabaseOperationException e) {
+            System.out.println("Error: " + e.getMessage());
+            if (e.getCause() != null) {
+                System.out.println("Cause: " + e.getCause().getMessage());
+            }
+        }
+    }
+
+    private static void handleDeleteExpense(Scanner scanner, ExpenseService expenseService) {
+        try {
+            System.out.print("Enter expense ID to delete: ");
+            int id = Integer.parseInt(scanner.nextLine().trim());
+            expenseService.deleteExpense(id);
+            System.out.println("Expense deleted successfully.");
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid number input.");
+        } catch (DatabaseOperationException e) {
+            System.out.println("Error: " + e.getMessage());
+            if (e.getCause() != null) {
+                System.out.println("Cause: " + e.getCause().getMessage());
+            }
+        }
     }
 }

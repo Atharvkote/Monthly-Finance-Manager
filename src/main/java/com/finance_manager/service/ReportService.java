@@ -42,5 +42,13 @@ public class ReportService {
 
         return new MonthlyReport(totalIncome, totalExpense);
     }
+
+    public IncomeService getIncomeService() {
+        return incomeService;
+    }
+
+    public ExpenseService getExpenseService() {
+        return expenseService;
+    }
 }
 

@@ -7,7 +7,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DBConnection {
-    // Default constants - avoid scattering literals in code; environment variables override these
     private static final String DEFAULT_DB_URL = "jdbc:mysql://localhost:3307/finance_db";
     private static final String DEFAULT_DB_USER = "root";
     private static final String DEFAULT_DB_PASSWORD = "root123";
@@ -16,7 +15,6 @@ public class DBConnection {
 
     private DBConnection() throws DatabaseOperationException {
         try {
-            // ensure driver is loaded
             Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
             throw new DatabaseOperationException("MySQL JDBC Driver not found", e);

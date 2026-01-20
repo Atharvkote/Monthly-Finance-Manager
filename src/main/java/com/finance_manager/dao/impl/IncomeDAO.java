@@ -1,7 +1,6 @@
 package com.finance_manager.dao.impl;
 
 import com.finance_manager.dao.DBConnection;
-import com.finance_manager.interfaces.IncomeDAO;
 import com.finance_manager.exceptions.DatabaseOperationException;
 import com.finance_manager.model.Income;
 
@@ -10,7 +9,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-public class IncomeDAOImpl implements IncomeDAO {
+public class IncomeDAO implements com.finance_manager.interfaces.IncomeDAO {
 
     private static final String INSERT_SQL = "INSERT INTO income (amount, source, description, date) VALUES (?, ?, ?, ?)";
     private static final String FETCH_BY_MONTH_SQL = "SELECT id, amount, source, description, date FROM income WHERE YEAR(date) = ? AND MONTH(date) = ?";

@@ -1,4 +1,4 @@
-package com.finance_manager.dao;
+package com.finance_manager.interfaces;
 
 import com.finance_manager.exceptions.DatabaseOperationException;
 import com.finance_manager.model.Expense;

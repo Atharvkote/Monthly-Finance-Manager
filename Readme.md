@@ -1,9 +1,25 @@
-# Monthly Finance Manager
+Monthly Finance Manager
 
+Setup (MySQL):
+1. Create DB and user (run sql/schema.sql):
 
+   -- In MySQL as root:
+   CREATE DATABASE finance_db;
+   CREATE USER 'finance_user'@'localhost' IDENTIFIED BY 'finance_password';
+   GRANT ALL PRIVILEGES ON finance_db.* TO 'finance_user'@'localhost';
+   FLUSH PRIVILEGES;
 
-## System Architecture
-![diagram-export-1-20-2026-12_25_44-PM.png](https://eraser.imgix.net/workspaces/A9TZbR86sG9CLz1xgcob/FE0X0yfxyZYv4piUWi8UcLeFkoM2/diagram-export-1-20-2026-12_25_44-PM_GBn5Ai_61a4-Zxj42u28G.png?ixlib=js-3.8.0 "diagram-export-1-20-2026-12_25_44-PM.png")
+2. Run the SQL schema in `sql/schema.sql` to create tables.
 
+Run the application:
+- Build: mvn package
+- Run: java -jar target/Monthly-Finance-Manager-1.0-SNAPSHOT.jar
 
+Configuration:
+- You can override DB connection using environment variables:
+  FINANCE_DB_URL, FINANCE_DB_USER, FINANCE_DB_PASSWORD
+
+Notes:
+- The app uses JDBC with try-with-resources and PreparedStatements.
+- Java 17 is required.
 

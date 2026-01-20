@@ -15,6 +15,8 @@ public class IncomeDAOImpl implements IncomeDAO {
     private static final String INSERT_SQL = "INSERT INTO income (amount, source, description, date) VALUES (?, ?, ?, ?)";
     private static final String FETCH_BY_MONTH_SQL = "SELECT id, amount, source, description, date FROM income WHERE YEAR(date) = ? AND MONTH(date) = ?";
     private static final String FETCH_BY_RANGE_SQL = "SELECT id, amount, source, description, date FROM income WHERE date BETWEEN ? AND ?";
+    private static final String UPDATE_SQL = "UPDATE income SET amount = ?, source = ?, description = ?, date = ? WHERE id = ?";
+    private static final String DELETE_SQL = "DELETE FROM income WHERE id = ?";
 
     @Override
     public void insertIncome(Income income) throws DatabaseOperationException {
@@ -75,5 +77,42 @@ public class IncomeDAOImpl implements IncomeDAO {
             throw new DatabaseOperationException("Error fetching income by date range: " + e.getMessage(), e);
         }
         return list;
+    }
+
+    @Override
+    public void updateIncome(Income income) throws DatabaseOperationException {
+        if (income == null || income.getId() <= 0) {
+            throw new DatabaseOperationException("Income id must be provided for update.");
+        }
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(UPDATE_SQL)) {
+            ps.setDouble(1, income.getAmount());
+            ps.setString(2, income.getSource());
+            ps.setString(3, income.getDescription());
+            ps.setDate(4, Date.valueOf(income.getDate()));
+            ps.setInt(5, income.getId());
+
+            int affected = ps.executeUpdate();
+            if (affected == 0) {
+                throw new DatabaseOperationException("Updating income failed, no rows affected.");
+            }
+        } catch (SQLException e) {
+            throw new DatabaseOperationException("Error updating income: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void deleteIncome(int id) throws DatabaseOperationException {
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(DELETE_SQL)) {
+            ps.setInt(1, id);
+            int affected = ps.executeUpdate();
+            if (affected == 0) {
+                throw new DatabaseOperationException("Deleting income failed, no rows affected (id may not exist).");
+            }
+        } catch (SQLException e) {
+            throw new DatabaseOperationException("Error deleting income: " + e.getMessage(), e);
+        }
     }
 }

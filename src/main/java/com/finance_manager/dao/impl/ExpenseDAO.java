@@ -15,6 +15,8 @@ public class ExpenseDAOImpl implements ExpenseDAO {
     private static final String INSERT_SQL = "INSERT INTO expense (amount, category, description, date) VALUES (?, ?, ?, ?)";
     private static final String FETCH_BY_MONTH_SQL = "SELECT id, amount, category, description, date FROM expense WHERE YEAR(date) = ? AND MONTH(date) = ?";
     private static final String FETCH_BY_RANGE_SQL = "SELECT id, amount, category, description, date FROM expense WHERE date BETWEEN ? AND ?";
+    private static final String UPDATE_SQL = "UPDATE expense SET amount = ?, category = ?, description = ?, date = ? WHERE id = ?";
+    private static final String DELETE_SQL = "DELETE FROM expense WHERE id = ?";
 
     @Override
     public void insertExpense(Expense expense) throws DatabaseOperationException {
@@ -75,5 +77,42 @@ public class ExpenseDAOImpl implements ExpenseDAO {
             throw new DatabaseOperationException("Error fetching expense by date range: " + e.getMessage(), e);
         }
         return list;
+    }
+
+    @Override
+    public void updateExpense(Expense expense) throws DatabaseOperationException {
+        if (expense == null || expense.getId() <= 0) {
+            throw new DatabaseOperationException("Expense id must be provided for update.");
+        }
+
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(UPDATE_SQL)) {
+            ps.setDouble(1, expense.getAmount());
+            ps.setString(2, expense.getCategory());
+            ps.setString(3, expense.getDescription());
+            ps.setDate(4, Date.valueOf(expense.getDate()));
+            ps.setInt(5, expense.getId());
+
+            int affected = ps.executeUpdate();
+            if (affected == 0) {
+                throw new DatabaseOperationException("Updating expense failed, no rows affected.");
+            }
+        } catch (SQLException e) {
+            throw new DatabaseOperationException("Error updating expense: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void deleteExpense(int id) throws DatabaseOperationException {
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(DELETE_SQL)) {
+            ps.setInt(1, id);
+            int affected = ps.executeUpdate();
+            if (affected == 0) {
+                throw new DatabaseOperationException("Deleting expense failed, no rows affected (id may not exist).");
+            }
+        } catch (SQLException e) {
+            throw new DatabaseOperationException("Error deleting expense: " + e.getMessage(), e);
+        }
     }
 }

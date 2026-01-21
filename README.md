@@ -2,7 +2,6 @@
 
 A Java 17 console-based application to track monthly income and expenses using MySQL, JDBC, and clean OOP architecture. The project is designed to be simple, reliable, and production-ready, with proper exception handling and database persistence.
 
----
 
 ## Features
 

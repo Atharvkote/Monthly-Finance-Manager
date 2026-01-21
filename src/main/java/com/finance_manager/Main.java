@@ -229,30 +229,43 @@ public class Main {
 
     private static void printTransactionHistory(List<Income> incomes, List<Expense> expenses) {
         System.out.println("--- Detailed income / expense history ---");
-        record Movement(LocalDate date, String type, String description, double change, double balance) {}
+        record Movement(int Id ,LocalDate date, String type, String description, double change, double balance) {}
 
         // Build a single list of movements
         List<Movement> movements = new java.util.ArrayList<>();
         for (Income i : incomes) {
-            movements.add(new Movement(i.getDate(), "INCOME", i.getSource() + " - " + i.getDescription(), i.getAmount(), 0));
+            movements.add(new Movement(i.getId(), i.getDate(), "INCOME", i.getSource() + " - " + i.getDescription(), i.getAmount(), 0));
         }
         for (Expense e : expenses) {
-            movements.add(new Movement(e.getDate(), "EXPENSE", e.getCategory() + " - " + e.getDescription(), -e.getAmount(), 0));
+            movements.add(new Movement(e.getId() , e.getDate(), "EXPENSE", e.getCategory() + " - " + e.getDescription(), -e.getAmount(), 0));
         }
 
         // Sort by date
         movements.sort(Comparator.comparing(Movement::date));
 
-        double balance = 0;
-        System.out.printf("%-12s %-8s %-30s %10s %12s%n", "Date", "Type", "Description", "Change", "Balance");
-        for (int idx = 0; idx < movements.size(); idx++) {
-            Movement m = movements.get(idx);
-            balance += m.change();
-            System.out.printf("%-12s %-8s %-30s %10.2f %12.2f%n",
-                    m.date(), m.type(), m.description(), m.change(), balance);
-        }
         if (movements.isEmpty()) {
             System.out.println("No transactions in this period.");
+            return;
+        }
+
+        System.out.printf(
+                "%-6s %-12s %-12s %-30s %12s %12s%n",
+                "ID", "Date", "Type", "Description", "Change", "Balance"
+        );
+
+        double balance = 0.0;
+
+        for (Movement m : movements) {
+            balance += m.change();
+            System.out.printf(
+                    "%-6d %-12s %-12s %-30s %12.2f %12.2f%n",
+                    m.Id(),
+                    m.date(),
+                    m.type(),
+                    m.description(),
+                    m.change(),
+                    balance
+            );
         }
     }
 

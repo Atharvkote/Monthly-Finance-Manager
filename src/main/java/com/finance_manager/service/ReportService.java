@@ -29,7 +29,6 @@ public class ReportService {
 
     public MonthlyReport generateCustomDateReport(LocalDate from, LocalDate to) throws DatabaseOperationException {
         if (from.isAfter(to)) {
-            // swap to ensure correct range
             LocalDate tmp = from;
             from = to;
             to = tmp;
